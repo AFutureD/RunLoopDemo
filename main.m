@@ -7,6 +7,8 @@
 
 #import <Foundation/Foundation.h>
 
+#pragma mark - RunLoop Source Manager
+
 @interface RLS: NSObject
 
 @property CFRunLoopRef workingRL;
@@ -49,6 +51,8 @@
 
 @end
 
+#pragma mark - RunLoop Source Callback
+
 void ScheduleCallBack(void *info, CFRunLoopRef rl, CFRunLoopMode mode) {
     NSLog(@"Scheduled!");
 }
@@ -69,6 +73,8 @@ void PerformCallBack(void *info) {
     });
 }
 
+#pragma mark - Main
+
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
         NSLog(@"Start!");
@@ -83,14 +89,13 @@ int main(int argc, const char * argv[]) {
 
         CFRunLoopSourceRef source = CFRunLoopSourceCreate(kCFAllocatorDefault, 0, &context);
 
-        NSRunLoop *theRL = [NSRunLoop currentRunLoop];
-        [RLS shared].workingRL = [theRL getCFRunLoop];
-        [RLS shared].source = source;
+        [[RLS shared] setWorkingRL:CFRunLoopGetCurrent()];
+        [[RLS shared] setSource:source];
 
         [[RLS shared] prepare];
         [[RLS shared] signal];
 
-        while ([RLS shared].keepLoop && [theRL runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]]) {
+        while ([RLS shared].keepLoop && [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]]) {
             NSLog(@"Event Happened!");
         }
 
