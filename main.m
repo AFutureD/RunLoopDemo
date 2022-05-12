@@ -13,6 +13,7 @@
 
 @property CFRunLoopRef workingRL;
 @property CFRunLoopSourceRef source;
+@property CFRunLoopObserverRef observer;
 @property NSInteger signalCounts;
 @property BOOL keepLoop;
 
@@ -31,6 +32,10 @@
 
 - (void)prepare {
     _keepLoop = YES;
+    // Observer
+    CFRunLoopAddObserver(self.workingRL, self.observer, kCFRunLoopDefaultMode);
+    
+    // Source0
     CFRunLoopAddSource(self.workingRL, self.source, kCFRunLoopDefaultMode);
 }
 
@@ -40,7 +45,7 @@
     _keepLoop = NO;
 }
 
-- (void)signal {
+- (void)signalSource0 {
     if (self.signalCounts < 4) {
         CFRunLoopSourceSignal(self.source);
         self.signalCounts += 1;
@@ -69,7 +74,7 @@ void PerformCallBack(void *info) {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
         NSLog(@"Try Signal");
-        [[RLS shared] signal];
+        [[RLS shared] signalSource0];
     });
 }
 
@@ -114,7 +119,6 @@ int main(int argc, const char * argv[]) {
         
         // Observer
         CFRunLoopObserverRef observer = CFRunLoopObserverCreate(kCFAllocatorDefault, kCFRunLoopAllActivities, YES, 0, &currentRunLoopObserver, NULL);
-        CFRunLoopAddObserver(CFRunLoopGetCurrent(), observer, kCFRunLoopDefaultMode);
         
         // Source0
         CFRunLoopSourceContext context = {
@@ -124,14 +128,15 @@ int main(int argc, const char * argv[]) {
             CancelCallBack,
             PerformCallBack
         };
-
         CFRunLoopSourceRef source = CFRunLoopSourceCreate(kCFAllocatorDefault, 0, &context);
-
+        
+        // configure
         [[RLS shared] setWorkingRL:CFRunLoopGetCurrent()];
         [[RLS shared] setSource:source];
-
+        [[RLS shared] setObserver:observer];
+        
         [[RLS shared] prepare];
-        [[RLS shared] signal];
+        [[RLS shared] signalSource0];
 
         while ([RLS shared].keepLoop && [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]]) {
             NSLog(@"Event Happened!");
