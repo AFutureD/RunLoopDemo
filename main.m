@@ -73,12 +73,50 @@ void PerformCallBack(void *info) {
     });
 }
 
+#pragma mark - RunLoop Observer
+
+NSString *activityDescription(CFRunLoopActivity activity) {
+    NSString *description;
+    switch (activity) {
+        case kCFRunLoopEntry:
+            description = @"kCFRunLoopEntry";
+            break;
+        case kCFRunLoopBeforeTimers:
+            description = @"kCFRunLoopBeforeTimers";
+            break;
+        case kCFRunLoopBeforeSources:
+            description = @"kCFRunLoopBeforeSources";
+            break;
+        case kCFRunLoopBeforeWaiting:
+            description = @"kCFRunLoopBeforeWaiting";
+            break;
+        case kCFRunLoopAfterWaiting:
+            description = @"kCFRunLoopAfterWaiting";
+            break;
+        case kCFRunLoopExit:
+            description = @"kCFRunLoopExit";
+            break;
+        default:
+            break;
+    }
+    return description;
+}
+
+void currentRunLoopObserver(CFRunLoopObserverRef observer, CFRunLoopActivity activity, void *info) {
+    NSLog(@"Activity: %@", activityDescription(activity));
+}
+
 #pragma mark - Main
 
 int main(int argc, const char * argv[]) {
     @autoreleasepool {
         NSLog(@"Start!");
-
+        
+        // Observer
+        CFRunLoopObserverRef observer = CFRunLoopObserverCreate(kCFAllocatorDefault, kCFRunLoopAllActivities, YES, 0, &currentRunLoopObserver, NULL);
+        CFRunLoopAddObserver(CFRunLoopGetCurrent(), observer, kCFRunLoopDefaultMode);
+        
+        // Source0
         CFRunLoopSourceContext context = {
             0,
             NULL, NULL, NULL, NULL, NULL, NULL,
@@ -98,7 +136,7 @@ int main(int argc, const char * argv[]) {
         while ([RLS shared].keepLoop && [[NSRunLoop currentRunLoop] runMode:NSDefaultRunLoopMode beforeDate:[NSDate distantFuture]]) {
             NSLog(@"Event Happened!");
         }
-
+        
         NSLog(@"Finish!");
     }
     return 0;
